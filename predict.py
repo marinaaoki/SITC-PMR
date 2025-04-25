@@ -2,6 +2,7 @@ import os
 from scipy.ndimage import gaussian_filter1d
 import torch
 import argparse
+import torchsummary
 import numpy as np
 from dataset import get_meanpose
 from model import get_autoencoder
@@ -21,6 +22,18 @@ def handle2x(config, args):
     net.load_state_dict(torch.load(args.model_path))
     net.to(config.device)
     net.eval()
+
+    print(f"Parameters: {sum(p.numel() for p in net.parameters())}")
+    model = net
+    param_size = 0
+    for param in model.parameters():
+        param_size += param.nelement() * param.element_size()
+    buffer_size = 0
+    for buffer in model.buffers():
+        buffer_size += buffer.nelement() * buffer.element_size()
+
+    size_all_mb = (param_size + buffer_size) / 1024**2
+    print('model size: {:.3f}MB'.format(size_all_mb))
 
     # mean/std pose
     mean_pose, std_pose = get_meanpose(config)
@@ -148,7 +161,7 @@ def main():
     parser.add_argument('-h3', '--img3_height', type=int, help="video3's height")
     parser.add_argument('-w3', '--img3_width', type=int, help="video3's width")
     parser.add_argument('-o', '--out_dir', type=str, default='./outputs', help="output saving directory")
-    parser.add_argument('--render_video', type=bool, default=True, help="whether to save rendered video")
+    parser.add_argument('--render_video', type=bool, default=False, help="whether to save rendered video")
     parser.add_argument('--fps', type=float, default=25, help="fps of output video")
     parser.add_argument('--save_frame', action='store_true', help="to save rendered video frames")
     parser.add_argument('--color1', type=str, default='#a50b69#b73b87#db9dc3', help='color1')
